@@ -372,7 +372,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     }
 
     /**
-     * Returns a power of two size for the given target capacity.
+     *  将初始化容量的大小增大到 2的整数次幂
      */
     static final int tableSizeFor(int cap) {
         int n = cap - 1;
@@ -625,17 +625,21 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
         if ((tab = table) == null || (n = tab.length) == 0)
+            //扩容或指定初始容量
             n = (tab = resize()).length;
+        //计算出来的节点原来没有值，直接插入
         if ((p = tab[i = (n - 1) & hash]) == null)
             tab[i] = newNode(hash, key, value, null);
         else {
             Node<K,V> e; K k;
+            //key相同直接替换
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
                 e = p;
             else if (p instanceof TreeNode)
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
             else {
+                //当数组长度为8的时候转化为红黑树
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {
                         p.next = newNode(hash, key, value, null);
@@ -658,6 +662,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
             }
         }
         ++modCount;
+        //大于数组容量的0.75倍时候进行扩容
         if (++size > threshold)
             resize();
         afterNodeInsertion(evict);
@@ -676,6 +681,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final Node<K,V>[] resize() {
         Node<K,V>[] oldTab = table;
         int oldCap = (oldTab == null) ? 0 : oldTab.length;
+        //初始化为0，threshold 当数组容量超过这个值得时候需要扩容
         int oldThr = threshold;
         int newCap, newThr = 0;
         if (oldCap > 0) {
@@ -690,6 +696,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         else if (oldThr > 0) // initial capacity was placed in threshold
             newCap = oldThr;
         else {               // zero initial threshold signifies using defaults
+            //未指定初始容量的话默认容量为16
             newCap = DEFAULT_INITIAL_CAPACITY;
             newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
         }
@@ -702,11 +709,13 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         @SuppressWarnings({"rawtypes","unchecked"})
             Node<K,V>[] newTab = (Node<K,V>[])new Node[newCap];
         table = newTab;
+        //扩容的时候如果 旧数组不为null 需要把旧的数组内容拷贝到新的里面去（并且当前节点不为链表节点）
         if (oldTab != null) {
             for (int j = 0; j < oldCap; ++j) {
                 Node<K,V> e;
                 if ((e = oldTab[j]) != null) {
                     oldTab[j] = null;
+                    //hash值对应的node为null的话直接插入
                     if (e.next == null)
                         newTab[e.hash & (newCap - 1)] = e;
                     else if (e instanceof TreeNode)
@@ -715,6 +724,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                         Node<K,V> loHead = null, loTail = null;
                         Node<K,V> hiHead = null, hiTail = null;
                         Node<K,V> next;
+                        //rehash的时候  重新计算出来的hash值要么为 原来的值不变，要么为oldcap+原来的hash值
                         do {
                             next = e.next;
                             if ((e.hash & oldCap) == 0) {
