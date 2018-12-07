@@ -1,7 +1,7 @@
 <component name="libraryTable">
-  <library name="rt_debug">
+  <library name="rt_debug1">
     <CLASSES>
-      <root url="jar://$PROJECT_DIR$/out/production/JDK1.8/rt_debug.jar!/" />
+      <root url="jar://$PROJECT_DIR$/src/rt_debug.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

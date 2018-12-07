@@ -120,28 +120,31 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * Performs {@link Lock#lock}. The main reason for subclassing
          * is to allow fast path for nonfair version.
          */
+        //分为公平锁和非公平锁
         abstract void lock();
 
         /**
          * Performs non-fair tryLock.  tryAcquire is implemented in
          * subclasses, but both need nonfair try for trylock method.
          */
+        //非公平获得锁
         final boolean nonfairTryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
             int c = getState();
+            //如果state为 0 尝试cas方式直接将他 设为1 成功 获得锁
             if (c == 0) {
                 if (compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
                     return true;
                 }
-            }
+            }//可重入逻辑  重复设置
             else if (current == getExclusiveOwnerThread()) {
                 int nextc = c + acquires;
                 if (nextc < 0) // overflow
                     throw new Error("Maximum lock count exceeded");
                 setState(nextc);
                 return true;
-            }
+            }//
             return false;
         }
 
@@ -203,9 +206,11 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * acquire on failure.
          */
         final void lock() {
+            //先尝试cas方式将state设置为1 如果成功则获得锁   ，否则尝试acquire 1
             if (compareAndSetState(0, 1))
                 setExclusiveOwnerThread(Thread.currentThread());
             else
+                //尝试获得锁，如果失败则进入队列
                 acquire(1);
         }
 
@@ -217,6 +222,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
     /**
      * Sync object for fair locks
      */
+    //公平锁
     static final class FairSync extends Sync {
         private static final long serialVersionUID = -3000897897090466540L;
 

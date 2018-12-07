@@ -762,6 +762,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      * table is too small, in which case resizes instead.
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
+        //首先吧Node转化为treeNode的数组
         int n, index; Node<K,V> e;
         if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
             resize();
@@ -778,6 +779,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                 tl = p;
             } while ((e = e.next) != null);
             if ((tab[index] = hd) != null)
+                //真正把数组转化为树
                 hd.treeify(tab);
         }
     }
@@ -1907,6 +1909,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         final void treeify(Node<K,V>[] tab) {
             TreeNode<K,V> root = null;
             for (TreeNode<K,V> x = this, next; x != null; x = next) {
+                //头节点为空 直接转化成头结点
                 next = (TreeNode<K,V>)x.next;
                 x.left = x.right = null;
                 if (root == null) {
@@ -1918,6 +1921,7 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                     K k = x.key;
                     int h = x.hash;
                     Class<?> kc = null;
+                    //从root开始遍历循环
                     for (TreeNode<K,V> p = root;;) {
                         int dir, ph;
                         K pk = p.key;
@@ -1937,12 +1941,14 @@ public class HashMap<K,V> extends AbstractMap<K,V>
                                 xp.left = x;
                             else
                                 xp.right = x;
+                            // 红黑树的平衡
                             root = balanceInsertion(root, x);
                             break;
                         }
                     }
                 }
             }
+            //确认数组的第一个bean 是数组的第一个节点
             moveRootToFront(tab, root);
         }
 

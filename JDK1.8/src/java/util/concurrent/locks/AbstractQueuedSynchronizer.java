@@ -299,6 +299,14 @@ public abstract class AbstractQueuedSynchronizer
     protected AbstractQueuedSynchronizer() { }
 
     /**
+     * Head of the wait queue, lazily initialized.  Except for
+     * initialization, it is modified only via method setHead.  Note:
+     * If head exists, its waitStatus is guaranteed not to be
+     * CANCELLED.
+     */
+    private transient volatile Node head;
+
+    /**
      * Wait queue node class.
      *
      * <p>The wait queue is a variant of a "CLH" (Craig, Landin, and
@@ -375,22 +383,23 @@ public abstract class AbstractQueuedSynchronizer
      * <p>Thanks go to Dave Dice, Mark Moir, Victor Luchangco, Bill
      * Scherer and Michael Scott, along with members of JSR-166
      * expert group, for helpful ideas, discussions, and critiques
-     * on the design of this class.
-     */
+     * on the design of this class.*/
+
+
     static final class Node {
         /** Marker to indicate a node is waiting in shared mode */
         static final Node SHARED = new Node();
         /** Marker to indicate a node is waiting in exclusive mode */
         static final Node EXCLUSIVE = null;
 
-        /** waitStatus value to indicate thread has cancelled */
+        /** waitStatus value to indicate thread has cancelled */  //节点从同步队列中取消
         static final int CANCELLED =  1;
-        /** waitStatus value to indicate successor's thread needs unparking */
+        /** waitStatus value to indicate successor's thread needs unparking 后继节点的线程处于等待状态，如果当前节点释放同步状态会通知后继节点，使得后继节点的线程能够运行；*/
         static final int SIGNAL    = -1;
-        /** waitStatus value to indicate thread is waiting on condition */
+        /** waitStatus value to indicate thread is waiting on condition 当前节点进入等待队列中*/
         static final int CONDITION = -2;
         /**
-         * waitStatus value to indicate the next acquireShared should
+         * waitStatus value to indicate the next acquireShared should表示下一次共享式同步状态获取将会无条件传播下去
          * unconditionally propagate
          */
         static final int PROPAGATE = -3;
@@ -475,6 +484,7 @@ public abstract class AbstractQueuedSynchronizer
          * we save a field by using special value to indicate shared
          * mode.
          */
+        //和conditionObject waiter相互关联
         Node nextWaiter;
 
         /**
@@ -512,14 +522,6 @@ public abstract class AbstractQueuedSynchronizer
             this.thread = thread;
         }
     }
-
-    /**
-     * Head of the wait queue, lazily initialized.  Except for
-     * initialization, it is modified only via method setHead.  Note:
-     * If head exists, its waitStatus is guaranteed not to be
-     * CANCELLED.
-     */
-    private transient volatile Node head;
 
     /**
      * Tail of the wait queue, lazily initialized.  Modified only via
@@ -603,16 +605,20 @@ public abstract class AbstractQueuedSynchronizer
      * @return the new node
      */
     private Node addWaiter(Node mode) {
+        //nextwaiter为null
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail;
         if (pred != null) {
+            //上一个节点为尾节点
             node.prev = pred;
+            //原子性的设置 尾节点，设置成功返回
             if (compareAndSetTail(pred, node)) {
                 pred.next = node;
                 return node;
             }
         }
+        //否则自旋的方式去设置
         enq(node);
         return node;
     }
@@ -651,6 +657,7 @@ public abstract class AbstractQueuedSynchronizer
          * traverse backwards from tail to find the actual
          * non-cancelled successor.
          */
+        //唤醒节点 ，如果为null从尾部遍历status小于0的节点
         Node s = node.next;
         if (s == null || s.waitStatus > 0) {
             s = null;
@@ -1195,8 +1202,11 @@ public abstract class AbstractQueuedSynchronizer
      *        can represent anything you like.
      */
     public final void acquire(int arg) {
+        //首先尝试tryacuire ，如果获取失败 将该线程的node加入条件队列
         if (!tryAcquire(arg) &&
+                //Node.EXCLUSIVE代表独享模式,addwaiter 将节点加入条件队列 acquiredQueued自旋尝试获取锁
             acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+            //中断该线程等待被唤醒
             selfInterrupt();
     }
 
@@ -1728,6 +1738,7 @@ public abstract class AbstractQueuedSynchronizer
             }
         } finally {
             if (failed)
+                //节点从同步队列中取消
                 node.waitStatus = Node.CANCELLED;
         }
     }
@@ -1848,6 +1859,7 @@ public abstract class AbstractQueuedSynchronizer
         private Node addConditionWaiter() {
             Node t = lastWaiter;
             // If lastWaiter is cancelled, clean out.
+            //看链表哪个节点状态不是CONDITION  即不在等待队列中 ，维护列表
             if (t != null && t.waitStatus != Node.CONDITION) {
                 unlinkCancelledWaiters();
                 t = lastWaiter;
@@ -2032,7 +2044,9 @@ public abstract class AbstractQueuedSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
+            //将当前节点加入条件队列
             Node node = addConditionWaiter();
+            //释放 当前节点唤醒链表的下一个节点
             int savedState = fullyRelease(node);
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {

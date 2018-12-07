@@ -254,6 +254,7 @@ public class ArrayBlockingQueue<E> extends AbstractQueue<E>
             throw new IllegalArgumentException();
         this.items = new Object[capacity];
         lock = new ReentrantLock(fair);
+        //用来满了 和非空的时候用来阻塞和唤醒用
         notEmpty = lock.newCondition();
         notFull =  lock.newCondition();
     }

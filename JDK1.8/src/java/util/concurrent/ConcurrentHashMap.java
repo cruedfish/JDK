@@ -749,17 +749,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * full volatile semantics, but are currently coded as volatile
      * writes to be conservative.
      */
-
+     //原子性的获取某个node
     @SuppressWarnings("unchecked")
     static final <K,V> Node<K,V> tabAt(Node<K,V>[] tab, int i) {
         return (Node<K,V>)U.getObjectVolatile(tab, ((long)i << ASHIFT) + ABASE);
     }
-
+    //cas的 设定某个node
     static final <K,V> boolean casTabAt(Node<K,V>[] tab, int i,
                                         Node<K,V> c, Node<K,V> v) {
         return U.compareAndSwapObject(tab, ((long)i << ASHIFT) + ABASE, c, v);
     }
-
+   // volidate的设定某个值
     static final <K,V> void setTabAt(Node<K,V>[] tab, int i, Node<K,V> v) {
         U.putObjectVolatile(tab, ((long)i << ASHIFT) + ABASE, v);
     }
@@ -1024,6 +1024,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
+            //moved hash值 -1 在 FowardingNode中被定义
             else if ((fh = f.hash) == MOVED)
                 tab = helpTransfer(tab, f);
             else {
@@ -2164,6 +2165,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * A node inserted at head of bins during transfer operations.
      */
+    //Node的子类表示正在扩容
     static final class ForwardingNode<K,V> extends Node<K,V> {
         final Node<K,V>[] nextTable;
         ForwardingNode(Node<K,V>[] tab) {
